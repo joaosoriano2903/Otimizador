@@ -1,0 +1,113 @@
+<# =====================================================================
+   NTZ — TURBO MODE v1.1 (Live & Game Edition)
+   Desenvolvido para: Ryzen 5 5600 / RTX 3060 / 48GB DDR4
+   Autor: João (NTZ Soluções)
+===================================================================== #>
+
+$host.UI.RawUI.WindowTitle = "🔥 NTZ Turbo Mode — Live & Game Edition 🔥"
+$color = @{
+    Green = [ConsoleColor]::Green
+    Cyan  = [ConsoleColor]::Cyan
+    Red   = [ConsoleColor]::Red
+    White = [ConsoleColor]::White
+}
+function Write-Log($msg, $colorName="White") {
+    Write-Host "[$(Get-Date -Format HH:mm:ss)] $msg" -ForegroundColor $color[$colorName]
+}
+
+function Set-HighPerformance {
+    Write-Log "Ativando plano de energia de alto desempenho..." "Cyan"
+    powercfg /S 8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c | Out-Null
+    powercfg -setacvalueindex scheme_current sub_processor PROCTHROTTLEMAX 100
+    powercfg -setacvalueindex scheme_current sub_processor PROCTHROTTLEMIN 100
+    Write-Log "✅ Energia travada no máximo desempenho." "Green"
+}
+
+function Optimize-Network {
+    Write-Log "Otimizando pilha TCP/IP para jogos e stream..." "Cyan"
+    netsh int tcp set global autotuninglevel=normal
+    netsh int tcp set global rss=enabled
+    netsh int tcp set global chimney=enabled
+    netsh int tcp set global ecncapability=disabled
+    Write-Log "✅ Rede otimizada com baixa latência." "Green"
+}
+
+function Stop-UnnecessaryServices {
+    Write-Log "Desativando serviços desnecessários temporariamente..." "Cyan"
+    $services = @("WSearch","DiagTrack","SysMain","MapsBroker","Fax","WerSvc","Spooler","bthserv")
+    foreach ($s in $services) {
+        $svc = Get-Service -Name $s -ErrorAction SilentlyContinue
+        if ($svc -and $svc.Status -eq 'Running') {
+            Stop-Service -Name $s -Force
+            Write-Log "Serviço parado: $s" "Red"
+        }
+    }
+    Write-Log "✅ Serviços temporários desativados." "Green"
+}
+
+function Clean-Memory {
+    Write-Log "Limpando cache de memória e Standby..." "Cyan"
+    try {
+        Remove-Item "$env:TEMP\*" -Recurse -Force -ErrorAction SilentlyContinue
+        Remove-Item "$env:LOCALAPPDATA\Temp\*" -Recurse -Force -ErrorAction SilentlyContinue
+        Write-Log "✅ Memória otimizada e cache limpo." "Green"
+    } catch {
+        Write-Log "Falha ao limpar memória: $_" "Red"
+    }
+}
+
+function Boost-OBSandGames {
+    Write-Log "Ajustando prioridade de OBS e jogos..." "Cyan"
+    $targets = @("obs","obs64","warzone","cod","modernwarfare","steam","tiktoklive")
+    foreach ($t in $targets) {
+        Get-Process | Where-Object { $_.ProcessName -match $t } | ForEach-Object {
+            try {
+                if ($_.ProcessName -match "obs") { $_.PriorityClass = "High" }
+                else { $_.PriorityClass = "AboveNormal" }
+                Write-Log "Processo priorizado: $($_.ProcessName)" "Green"
+            } catch {}
+        }
+    }
+}
+
+function Restore-Defaults {
+    Write-Log "Restaurando serviços e energia padrão..." "Cyan"
+    powercfg /S 381b4222-f694-41f0-9685-ff5bb260df2e | Out-Null
+    Get-Service | Where-Object { $_.StartType -eq 'Automatic' -and $_.Status -ne 'Running' } | Start-Service -ErrorAction SilentlyContinue
+    Write-Log "✅ Sistema restaurado ao modo normal." "Green"
+}
+
+function Show-Menu {
+    Clear-Host
+    Write-Host ""
+    Write-Host "═══════════════════════════════════════════════" -ForegroundColor Cyan
+    Write-Host "        🚀 NTZ Turbo Mode — Painel Principal" -ForegroundColor Green
+    Write-Host "═══════════════════════════════════════════════" -ForegroundColor Cyan
+    Write-Host "[1] Ativar Modo Live/Game 🔥" -ForegroundColor White
+    Write-Host "[2] Restaurar Padrão ⚙️" -ForegroundColor White
+    Write-Host "[0] Sair" -ForegroundColor White
+    Write-Host "═══════════════════════════════════════════════" -ForegroundColor Cyan
+    $op = Read-Host "Escolha uma opção"
+    switch ($op) {
+        "1" {
+            Set-HighPerformance
+            Stop-UnnecessaryServices
+            Optimize-Network
+            Clean-Memory
+            Boost-OBSandGames
+            Write-Log "💥 TURBO MODE ATIVADO — bom jogo e boa live!" "Green"
+            Pause
+        }
+        "2" {
+            Restore-Defaults
+            Write-Log "🔄 Sistema normalizado." "Green"
+            Pause
+        }
+        default {
+            Write-Host "Saindo..." -ForegroundColor Cyan
+            exit
+        }
+    }
+}
+
+Show-Menu
